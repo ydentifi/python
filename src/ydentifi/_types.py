@@ -189,7 +189,7 @@ class ChallengeResult:
 
     status: ChallengeStatus
     expression: ChallengeExpression = ChallengeExpression.UNSPECIFIED
-    signature: bytes = b""
+    signature: bytes = field(default=b"", repr=False)
     decline_reason: DeclineReason = DeclineReason.UNSPECIFIED
     verification_failure: VerificationFailure = VerificationFailure.UNSPECIFIED
     location_result: LocationResult | None = None

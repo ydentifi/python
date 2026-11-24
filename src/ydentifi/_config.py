@@ -51,11 +51,11 @@ def resolve(  # noqa: PLR0912 -- one branch per configuration rule, in order
     *,
     server_addr: str | None = None,
     server_name: str | None = None,
-    cert_path: str | None = None,
-    key_path: str | None = None,
+    cert_path: str | os.PathLike[str] | None = None,
+    key_path: str | os.PathLike[str] | None = None,
     cert_pem: bytes | None = None,
     key_pem: bytes | None = None,
-    ca_path: str | None = None,
+    ca_path: str | os.PathLike[str] | None = None,
     ca_pem: bytes | None = None,
     user_agent: str | None = None,
     keepalive_time_seconds: int | None = None,
@@ -71,6 +71,9 @@ def resolve(  # noqa: PLR0912 -- one branch per configuration rule, in order
         ConfigurationError: The configuration is missing, cannot be read, or
             cannot be used.
     """
+    cert_path = None if cert_path is None else os.fspath(cert_path)
+    key_path = None if key_path is None else os.fspath(key_path)
+    ca_path = None if ca_path is None else os.fspath(ca_path)
     env = os.environ
     addr = server_addr or env.get(ENV_SERVER_ADDR, "")
     if not addr:

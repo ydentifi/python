@@ -58,6 +58,17 @@ def test_the_arguments_give_the_whole_configuration(files: dict[str, str]) -> No
     assert (cfg.cert_path, cfg.key_path) == (files["cert_path"], files["key_path"])
 
 
+def test_a_path_may_be_a_pathlike(files: dict[str, str]) -> None:
+    cfg = resolve(
+        server_addr="auth.example.com:443",
+        cert_path=Path(files["cert_path"]),
+        key_path=Path(files["key_path"]),
+        ca_path=Path(files["ca_path"]),
+    )
+    assert (cfg.cert_pem, cfg.key_pem, cfg.ca_pem) == (_CERT, _KEY, _CA.pem)
+    assert (cfg.cert_path, cfg.key_path) == (files["cert_path"], files["key_path"])
+
+
 def test_the_environment_gives_what_the_arguments_leave_out(
     files: dict[str, str],
     monkeypatch: pytest.MonkeyPatch,

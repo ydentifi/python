@@ -108,6 +108,14 @@ def test_a_frame_has_a_location_result_only_when_the_phone_reported_one() -> Non
     assert reported.emitted_at == dt.datetime(2026, 11, 16, 10, 0, 0, 123456, tzinfo=dt.UTC)
 
 
+def test_a_frames_repr_leaves_out_the_signature() -> None:
+    frame = ydentifi.ChallengeResult(
+        status=ydentifi.ChallengeStatus.APPROVED, signature=b"\x01" * 3309
+    )
+    assert "signature" not in repr(frame)
+    assert frame.signature == b"\x01" * 3309
+
+
 def test_an_enum_value_newer_than_the_sdk_keeps_its_number() -> None:
     status = ydentifi.ChallengeStatus(42)
     assert status == 42

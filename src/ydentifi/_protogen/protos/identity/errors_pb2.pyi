@@ -41,6 +41,7 @@ class ErrorReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     NOT_IMPLEMENTED: _ClassVar[ErrorReason]
     SERVER_INTERNAL: _ClassVar[ErrorReason]
     SERVER_UNAVAILABLE: _ClassVar[ErrorReason]
+    SERVER_TIMEOUT: _ClassVar[ErrorReason]
     APP_VERSION_TOO_OLD: _ClassVar[ErrorReason]
 ERROR_REASON_UNSPECIFIED: ErrorReason
 USER_NOT_FOUND: ErrorReason
@@ -76,6 +77,7 @@ INVALID_ARGUMENT: ErrorReason
 NOT_IMPLEMENTED: ErrorReason
 SERVER_INTERNAL: ErrorReason
 SERVER_UNAVAILABLE: ErrorReason
+SERVER_TIMEOUT: ErrorReason
 APP_VERSION_TOO_OLD: ErrorReason
 
 class ErrorDetail(_message.Message):

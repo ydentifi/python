@@ -17,6 +17,7 @@ no reference to a call behind it:
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
@@ -81,11 +82,11 @@ class AsyncClient:
         *,
         server_addr: str | None = None,
         server_name: str | None = None,
-        cert_path: str | None = None,
-        key_path: str | None = None,
+        cert_path: str | os.PathLike[str] | None = None,
+        key_path: str | os.PathLike[str] | None = None,
         cert_pem: bytes | None = None,
         key_pem: bytes | None = None,
-        ca_path: str | None = None,
+        ca_path: str | os.PathLike[str] | None = None,
         ca_pem: bytes | None = None,
         user_agent: str | None = None,
         keepalive_time_seconds: int | None = None,

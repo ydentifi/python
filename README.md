@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://pypi.org/project/ydentifi"><img src="https://img.shields.io/badge/pypi-ydentifi-1BA1C0?style=flat-square" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-1BA1C0?style=flat-square" alt="Python Version"></a>
-  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.4-1BA1C0?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.5-1BA1C0?style=flat-square" alt="Release"></a>
   <a href="https://ydentifi.io"><img src="https://img.shields.io/badge/ydentifi-identity%20server-1BA1C0?style=flat-square" alt="Ydentifi"></a>
 </p>
 
@@ -52,9 +52,11 @@ Python 3.11 or later is required. The SDK supports every CPython version the Pyt
 
 The client calls a deployment of the Ydentifi server, which is self-hosted. The deployment's operator provides three inputs:
 
-- **The server's address**: the host and port of its relying-party listener. The server listens on port 50051 unless its configuration sets another; a deployment behind a load balancer may publish another port, such as 443.
+- **The server's address**: the host and port of its relying-party listener. The server listens on port 50051 unless its configuration sets another; a deployment behind a load balancer may publish another port, such as 443. An address without a port means port 443.
 - **The relying party's certificate and private key**, issued by the deployment's certificate authority.
 - **The deployment's CA bundle**, with which the client verifies the server.
+
+A wrong CA bundle, server name or client certificate fails the TLS handshake, and the call raises `UnavailableError`. When the address resolves to more than one IP address, the error describes the last address tried, and can read as a network fault, such as `Network is unreachable` for an IPv6 address the host cannot reach. gRPC writes the handshake's failure, such as `CERTIFICATE_VERIFY_FAILED`, to standard error.
 
 The Ydentifi documentation describes how a deployment is run, in the [Quickstart](https://ydentifi.io/docs/quickstart); how relying-party certificates are issued, under [Certificates & PKI](https://ydentifi.io/docs/certificates); and how relying parties and users are managed, under [Manage RPs & users](https://ydentifi.io/docs/manage). The [documentation](https://ydentifi.io/docs) covers the rest, including the [limits and quotas](https://ydentifi.io/docs/limits).
 
@@ -172,6 +174,8 @@ except ydentifi.NotFoundError:
     ...  # no such user
 ```
 
+A class covers every reason of its code: on `issue_auth_challenge`, `NotFoundError` also stands for a user with no enrolled phone (`ErrorReason.NO_ACTIVE_DEVICE_FOR_USER`). The reason, read in detail below, tells them apart.
+
 or read in detail:
 
 ```python
@@ -214,7 +218,7 @@ An answer of the server that the client cannot read, such as a time that is not 
 - `reason` is the server's reason, an `ErrorReason`, such as `ydentifi.ErrorReason.USER_NOT_FOUND`; `err.reason.name` gives its name. It is `ErrorReason.UNSPECIFIED` when the status carries no detail: a transport error, or a status gRPC raised itself, such as a passed deadline.
 - `message` is the status message.
 - `trace_id` is the call's W3C trace ID, 32 hex characters, when the server attached one. The deployment's operators find the call in the server's logs by it.
-- `field` is the request field that failed a check.
+- `field` is the request field that failed a check, named as the server's API names it: `totp_code` for the `code` argument of `verify_user_totp`, `location_constraint.radius_m` for `radius_meters`.
 - `subject` is what the call referred to, as the call named it: the opaque ID on `USER_NOT_FOUND`, the device ID on `DEVICE_NOT_FOUND`. On `RATE_LIMIT_EXCEEDED` from a per-user limit and on `CHALLENGE_TOO_SOON`, it is `<relying party ID>:<opaque ID>`; for the limit on `unlock_user_request_limits`, it is `unlock_guard:<relying party ID>:<opaque ID>`.
 - `auto_expires_at` is set on `RATE_LIMIT_EXCEEDED` from a per-user limit and on `CHALLENGE_TOO_SOON`: the UTC `datetime` from which the call is admitted again. A retry before then is refused. It is `None` when the server attached none.
 
@@ -306,7 +310,7 @@ with contextlib.closing(client.await_challenge(challenge_id, timeout=70)) as fra
     result = next(f for f in frames if f.status.is_terminal)
 ```
 
-Under asyncio, `asyncio.timeout` and `asyncio.wait_for` bound a call too; on timeout they raise the builtin `TimeoutError`, not a `StatusError`. A task cancelled during a call raises `asyncio.CancelledError`, which the SDK does not rewrite, and the call is cancelled on the server. A call that is in flight when `AsyncClient.close()` runs also raises `asyncio.CancelledError` in the task that awaits it; the task itself was not cancelled, and inside a `TaskGroup` the group then exits without an error.
+Under asyncio, `asyncio.timeout` and `asyncio.wait_for` bound a call too; on timeout they raise the builtin `TimeoutError`, not a `StatusError`. A task cancelled during a call raises `asyncio.CancelledError`, which the SDK does not rewrite, and the call is cancelled on the server. A call that is in flight when `AsyncClient.close()` runs also raises `asyncio.CancelledError` in the task that awaits it, so that task ends cancelled although nothing called its `cancel()`; inside a `TaskGroup`, the group then exits without an error.
 
 ---
 
@@ -733,7 +737,7 @@ Each challenge issued costs one of the user's tries. So do these refusals: `USER
 
 The refusal names the character and its byte offset.
 
-Real text uses some of what is refused, so it is normalized or stripped before the challenge is issued (`unicodedata.normalize("NFC", text)` handles the normalization):
+Real text uses some of what is refused. The relying party normalizes or strips it before it issues the challenge, as neither the client nor the server changes the text (`unicodedata.normalize("NFC", text)` handles the normalization):
 
 - an emoji selector after an emoji that already shows as one (a star or check mark followed by U+FE0F), and a keycap without its U+FE0F;
 - soft hyphens, and the zero-width space Thai, Khmer and Shan put between words;
@@ -1235,7 +1239,7 @@ See [StatusError](#statuserror) under Error handling. `ydentifi.ErrorReason` is 
 ## Version
 
 ```python
-ydentifi.__version__  # "0.1.4"
+ydentifi.__version__  # "0.1.5"
 ```
 
 Versions are 0.x: a minor version may change the API.

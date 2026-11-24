@@ -9,6 +9,7 @@ to approve sign-ins and actions, over gRPC with mutual TLS::
         server_addr="auth.example.com:443",
         cert_path="/etc/ydentifi/rp.crt",
         key_path="/etc/ydentifi/rp.key",
+        ca_path="/etc/ydentifi/ca.pem",
     ) as client:
         opaque_id = client.create_user()
 
