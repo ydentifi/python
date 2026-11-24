@@ -4,7 +4,7 @@ Each example uses these variables:
     YDFI_SERVER_ADDR: The server host and optional port.
     YDFI_TLS_CERT_PATH: The relying-party client certificate in PEM format.
     YDFI_TLS_KEY_PATH: Its private key in PEM format.
-    YDFI_TLS_CA_PATH: An optional server-verification CA bundle.
+    YDFI_TLS_CA_PATH: The deployment's CA bundle that verifies the server, in PEM format.
     YDFI_SERVER_NAME: The TLS verification name, required for an IP address.
 
 Inputs such as opaque user IDs are supplied as command-line arguments.

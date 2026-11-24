@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./.assets/ydentifi-logo.png" alt="Ydentifi" width="120">
+  <img src="https://raw.githubusercontent.com/ydentifi/python/main/.assets/ydentifi-logo.png" alt="Ydentifi" width="120">
 </p>
 
 <h1 align="center">Ydentifi Python Client</h1>
@@ -7,11 +7,11 @@
 <p align="center">
   <a href="https://pypi.org/project/ydentifi"><img src="https://img.shields.io/badge/pypi-ydentifi-1BA1C0?style=flat-square" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-1BA1C0?style=flat-square" alt="Python Version"></a>
-  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.3-1BA1C0?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.4-1BA1C0?style=flat-square" alt="Release"></a>
   <a href="https://ydentifi.io"><img src="https://img.shields.io/badge/ydentifi-identity%20server-1BA1C0?style=flat-square" alt="Ydentifi"></a>
 </p>
 
-The Python client of the Ydentifi identity server. A relying party uses it to create anonymous users, to enroll their phones, and to ask them to approve sign-ins and actions. The client speaks gRPC over mutual TLS. It comes in two forms: `Client`, which is synchronous, and `AsyncClient`, for asyncio.
+The Python client of the [Ydentifi](https://ydentifi.io) identity server. A relying party uses it to create anonymous users, to enroll their phones, and to ask them to approve sign-ins and actions. The client speaks gRPC over mutual TLS. It comes in two forms: `Client`, which is synchronous, and `AsyncClient`, for asyncio.
 
 ```bash
 pip install ydentifi
@@ -23,6 +23,7 @@ Python 3.11 or later is required. The SDK supports every CPython version the Pyt
 
 ## Contents
 
+- [Before the first call](#before-the-first-call)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
 - [Error handling](#error-handling)
@@ -47,6 +48,18 @@ Python 3.11 or later is required. The SDK supports every CPython version the Pyt
 
 ---
 
+## Before the first call
+
+The client calls a deployment of the Ydentifi server, which is self-hosted. The deployment's operator provides three inputs:
+
+- **The server's address**: the host and port of its relying-party listener. The server listens on port 50051 unless its configuration sets another; a deployment behind a load balancer may publish another port, such as 443.
+- **The relying party's certificate and private key**, issued by the deployment's certificate authority.
+- **The deployment's CA bundle**, with which the client verifies the server.
+
+The Ydentifi documentation describes how a deployment is run, in the [Quickstart](https://ydentifi.io/docs/quickstart); how relying-party certificates are issued, under [Certificates & PKI](https://ydentifi.io/docs/certificates); and how relying parties and users are managed, under [Manage RPs & users](https://ydentifi.io/docs/manage). The [documentation](https://ydentifi.io/docs) covers the rest, including the [limits and quotas](https://ydentifi.io/docs/limits).
+
+---
+
 ## Quick start
 
 ```python
@@ -56,6 +69,7 @@ with ydentifi.Client(
     server_addr="auth.example.com:443",
     cert_path="/etc/ydentifi/rp.crt",
     key_path="/etc/ydentifi/rp.key",
+    ca_path="/etc/ydentifi/ca.pem",
 ) as client:
     opaque_id = client.create_user()
     print("created user:", opaque_id)
@@ -74,6 +88,7 @@ async def main() -> None:
         server_addr="auth.example.com:443",
         cert_path="/etc/ydentifi/rp.crt",
         key_path="/etc/ydentifi/rp.key",
+        ca_path="/etc/ydentifi/ca.pem",
     ) as client:
         opaque_id = await client.create_user()
         print("created user:", opaque_id)
@@ -190,6 +205,8 @@ except ydentifi.StatusError as err:
 | `ConfigurationError` | — | The client could not be built. See [Configuration](#configuration). Not a `StatusError` |
 
 Every exception here is a `YdentifiError`. The gRPC code decides the class. Three reasons narrow it: `MAX_DEVICES_REACHED` under `FAILED_PRECONDITION`, `TOTP_LOCKED` under `FAILED_PRECONDITION` and `CHALLENGE_TOO_SOON` under `RESOURCE_EXHAUSTED`. A code not in the table raises a plain `StatusError`.
+
+An answer of the server that the client cannot read, such as a time that is not RFC 3339, raises `MalformedResponseError`, a `YdentifiError` that is not a `StatusError`. A server that keeps to its protocol never causes it.
 
 ### StatusError
 
@@ -392,7 +409,7 @@ print(len(created), "of 1000")
 
 | Exception | Reason | When |
 |---|---|---|
-| `InvalidArgumentError` | `INVALID_ARGUMENT` | `count` is out of range, the key is empty, too long or holds NUL, or the key was used before with another `count` |
+| `InvalidArgumentError` | `INVALID_ARGUMENT` | `count` is out of range, the key is empty, too long or holds NUL, or the key was used before with another `count`. `field` is `count` when `count` is out of range, and `idempotency_key` otherwise |
 | `ResourceExhaustedError` | `RATE_LIMIT_EXCEEDED` | A new key while the relying party already holds 1,000 keys. `field` is `idempotency_key`, and there is no retry time: each key is held for 30 days from its first user. A key the relying party already holds is never refused |
 | `AbortedError` | `SERVER_UNAVAILABLE` | Another call under the same key got there first. A call again with the same key resumes |
 
@@ -851,7 +868,7 @@ def verify_user_totp(self, opaque_id: str, code: str, *, timeout: float | None =
 
 - `code` — exactly 6 ASCII digits.
 
-**Returns** `True` when the code is right. A code is accepted for the current 30-second step or the steps on either side, and only when its step is later than the step of the last code accepted for the same secret. **A code works once:** a code already accepted returns `False`, as a wrong code does, and so does an unused code of a step no later than the last accepted one.
+**Returns** `True` when the code is right. A code is accepted for the current 30-second step or the steps on either side, and only when its step is later than the step of the last code accepted for the same secret. **A code works once:** a code already accepted returns `False` and spends an attempt, as a wrong code does, and so does an unused code of a step no later than the last accepted one.
 
 **Errors**
 
@@ -859,7 +876,7 @@ def verify_user_totp(self, opaque_id: str, code: str, *, timeout: float | None =
 |---|---|---|
 | `NotFoundError` | `USER_NOT_FOUND` | No user of the relying party has that opaque ID. `subject` is the opaque ID sent |
 | `InvalidArgumentError` | `INVALID_ARGUMENT` | `code` is not 6 ASCII digits |
-| `FailedPreconditionError` | `USER_LOCKED` | The user is locked |
+| `FailedPreconditionError` | `USER_LOCKED` | The user is locked. The refusal spends an attempt |
 | `TOTPLockedError` | `TOTP_LOCKED` | The user's codes are locked after 100 wrong codes in a row |
 | `FailedPreconditionError` | `TOTP_SECRET_KEY_UNAVAILABLE` | The stored secret cannot be read. `issue_user_totp_enrollment` issues a new one |
 | `ResourceExhaustedError` | `RATE_LIMIT_EXCEEDED` | The user's tries for wrong codes are spent; see [Limits](#limits) |
@@ -900,7 +917,7 @@ def issue_enrollment_invite(
 | Exception | Reason | When |
 |---|---|---|
 | `NotFoundError` | `USER_NOT_FOUND` | No user of the relying party has that opaque ID. `subject` is the opaque ID sent |
-| `FailedPreconditionError` | `USER_LOCKED` | The user is locked |
+| `FailedPreconditionError` | `USER_LOCKED` | The user is locked. The refusal spends a try |
 | `DeviceLimitReachedError` | `MAX_DEVICES_REACHED` | The user already has 3 active devices. No invite was issued, and a try was spent. Once the user is authenticated, the user chooses a device to revoke from `list_devices_for_user`, and an invite is issued again |
 | `InvalidArgumentError` | `INVALID_ARGUMENT` | `ttl_seconds` or `context` is out of bounds |
 | `ResourceExhaustedError` | `RATE_LIMIT_EXCEEDED` | The user's invite tries are spent; see [Limits](#limits) |
@@ -1218,7 +1235,7 @@ See [StatusError](#statuserror) under Error handling. `ydentifi.ErrorReason` is 
 ## Version
 
 ```python
-ydentifi.__version__  # "0.1.3"
+ydentifi.__version__  # "0.1.4"
 ```
 
 Versions are 0.x: a minor version may change the API.
@@ -1227,4 +1244,4 @@ Versions are 0.x: a minor version may change the API.
 
 ## Examples
 
-The [`examples/`](./examples/) directory holds a script for every method, and [`status_error.py`](./examples/status_error.py) reads an error's reason and trace ID. Three use the asyncio client: [`async_export_users.py`](./examples/async_export_users.py), [`async_bulk_create_users.py`](./examples/async_bulk_create_users.py) and [`async_await_challenge.py`](./examples/async_await_challenge.py).
+The [`examples/`](https://github.com/ydentifi/python/tree/main/examples) directory holds a script for every method, and [`status_error.py`](https://github.com/ydentifi/python/blob/main/examples/status_error.py) reads an error's reason and trace ID. Three use the asyncio client: [`async_export_users.py`](https://github.com/ydentifi/python/blob/main/examples/async_export_users.py), [`async_bulk_create_users.py`](https://github.com/ydentifi/python/blob/main/examples/async_bulk_create_users.py) and [`async_await_challenge.py`](https://github.com/ydentifi/python/blob/main/examples/async_await_challenge.py).
