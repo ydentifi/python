@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from typing import Any
 
 import grpc
@@ -73,7 +73,7 @@ class Client:
         user_agent: str | None = None,
         keepalive_time_seconds: int | None = None,
         keepalive_timeout_seconds: int | None = None,
-        channel_options: list[tuple[str, str | int]] | None = None,
+        channel_options: Sequence[tuple[str, str | int]] | None = None,
     ) -> None:
         cfg = resolve(
             server_addr=server_addr,

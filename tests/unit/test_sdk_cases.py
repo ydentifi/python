@@ -9,6 +9,7 @@ closed port, so a call that reached the network would raise
 from __future__ import annotations
 
 import asyncio
+import base64
 import dataclasses
 import datetime as dt
 import logging
@@ -202,7 +203,24 @@ async def test_sdk_009_material_that_does_not_parse() -> None:
         assert name
 
 
-# --- SDK-010 to SDK-013, SDK-016: the address --------------------------------
+# --- SDK-010 to SDK-013, SDK-016, SDK-017: the address -----------------------
+
+
+async def test_sdk_017_an_empty_address_argument_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty server_addr is a mistake, not a request for YDFI_SERVER_ADDR."""
+    monkeypatch.setenv("YDFI_SERVER_ADDR", CLOSED_ADDR)
+    kwargs: dict[str, Any] = {
+        "server_addr": "",
+        "cert_pem": _CERT,
+        "key_pem": _KEY,
+        "ca_pem": _CA.pem,
+    }
+    with pytest.raises(ydentifi.ConfigurationError, match="server_addr was given an empty address"):
+        ydentifi.Client(**kwargs)
+    with pytest.raises(ydentifi.ConfigurationError, match="server_addr was given an empty address"):
+        ydentifi.AsyncClient(**kwargs)
 
 
 async def test_sdk_010_a_bare_host_with_no_port() -> None:
@@ -774,7 +792,7 @@ def _secret_results() -> list[tuple[object, dict[str, Any]]]:
     """Each secret-bearing result, with its secret fields."""
     at = dt.datetime(2026, 10, 7, 12, tzinfo=dt.UTC)
     token, payload = os.urandom(32), os.urandom(96)
-    secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ" * 3
+    secret = base64.b32encode(os.urandom(60)).decode()
     url = f"otpauth://totp/Ydentifi:u1?secret={secret}&issuer=Ydentifi"
     png = "iVBORw0KGgo" + "A" * 400
     invite: dict[str, Any] = {"invite_token": token, "qr_payload": payload}

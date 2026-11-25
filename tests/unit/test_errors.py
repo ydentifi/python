@@ -64,6 +64,20 @@ def test_the_text_is_the_message_and_the_trace_id() -> None:
     assert str(traced) == "failed (trace_id=abc)"
 
 
+def test_an_unavailable_error_with_no_reason_points_at_the_handshake() -> None:
+    message = "failed to connect to all addresses; last error: Network is unreachable"
+    err = ydentifi.UnavailableError(grpc.StatusCode.UNAVAILABLE, 0, message)
+    assert err.message == message
+    assert str(err) == (
+        message + "; if the server is reachable, the TLS handshake may have failed: "
+        "check the CA bundle, the server name and the client certificate"
+    )
+    refused = ydentifi.UnavailableError(
+        grpc.StatusCode.UNAVAILABLE, ydentifi.ErrorReason.SERVER_UNAVAILABLE, "server unavailable"
+    )
+    assert str(refused) == "server unavailable"
+
+
 def test_a_deadline_is_also_the_builtin_timeout_error() -> None:
     err = ydentifi.DeadlineExceededError(grpc.StatusCode.DEADLINE_EXCEEDED, 0, "Deadline Exceeded")
     assert isinstance(err, TimeoutError)

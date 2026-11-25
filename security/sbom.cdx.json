@@ -1,0 +1,119 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "library",
+      "name": "ydentifi",
+      "version": "v0.1.6",
+      "purl": ""
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "cffi",
+      "version": "2.1.1",
+      "purl": "pkg:pypi/cffi@2.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "grpcio",
+      "version": "1.85.4",
+      "purl": "pkg:pypi/grpcio@1.85.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pycparser",
+      "version": "3.12",
+      "purl": "pkg:pypi/pycparser@3.12",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "googleapis-common-protos",
+      "version": "1.76.0",
+      "purl": "pkg:pypi/googleapis-common-protos@1.76.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "purl": "pkg:pypi/typing-extensions@4.16.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "PSF-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "50.0.2",
+      "purl": "pkg:pypi/cryptography@50.0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0 OR BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "grpcio-status",
+      "version": "1.85.4",
+      "purl": "pkg:pypi/grpcio-status@1.85.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "protobuf",
+      "version": "7.36.2",
+      "purl": "pkg:pypi/protobuf@7.36.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    }
+  ]
+}

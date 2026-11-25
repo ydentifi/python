@@ -1,0 +1,50 @@
+{
+  "artefact": "ydentifi",
+  "version": "v0.1.6",
+  "digest": "sha256:d977e2e7b7abc1b56808f27a3772f1ab899a5d742c2bacf89191f726bacf6345",
+  "commit": "e70261c7559fa7a171fc0ca2c7749d90681692a5",
+  "checked_at_ms": 1795560452726,
+  "advisories_at_ms": 1795560452726,
+  "covered_by": "The signed tag `v0.1.6`",
+  "checks": [
+    {
+      "name": "Known vulnerabilities in dependencies",
+      "tool": "osv-scanner",
+      "status": "clean",
+      "result": "None"
+    },
+    {
+      "name": "Licences of dependencies",
+      "status": "clean",
+      "result": "All 8 allowed"
+    },
+    {
+      "name": "Secrets in the published files",
+      "tool": "betterleaks",
+      "status": "clean",
+      "result": "None"
+    },
+    {
+      "name": "Static analysis",
+      "tool": "ruff security rules",
+      "status": "clean",
+      "result": "No findings"
+    },
+    {
+      "name": "Internal references in the published files",
+      "status": "clean",
+      "result": "None"
+    },
+    {
+      "name": "The SDK's tests on the published files",
+      "status": "clean",
+      "result": "Pass"
+    },
+    {
+      "name": "Tests against a live server",
+      "tool": "cross-language parity",
+      "status": "clean",
+      "result": "All scenarios pass"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import errno
 import ipaddress
 import os
 import stat
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,7 +61,7 @@ def resolve(  # noqa: PLR0912 -- one branch per configuration rule, in order
     user_agent: str | None = None,
     keepalive_time_seconds: int | None = None,
     keepalive_timeout_seconds: int | None = None,
-    channel_options: list[tuple[str, str | int]] | None = None,
+    channel_options: Sequence[tuple[str, str | int]] | None = None,
 ) -> Config:
     """Returns the configuration the arguments give, with the environment supplying the rest.
 
@@ -75,6 +76,8 @@ def resolve(  # noqa: PLR0912 -- one branch per configuration rule, in order
     key_path = None if key_path is None else os.fspath(key_path)
     ca_path = None if ca_path is None else os.fspath(ca_path)
     env = os.environ
+    if server_addr is not None and not server_addr:
+        raise ConfigurationError("server_addr was given an empty address")
     addr = server_addr or env.get(ENV_SERVER_ADDR, "")
     if not addr:
         raise ConfigurationError(f"no server address: {ENV_SERVER_ADDR} and server_addr are unset")
@@ -131,6 +134,14 @@ def resolve(  # noqa: PLR0912 -- one branch per configuration rule, in order
         ("grpc.primary_user_agent", user_agent or f"ydentifi-python/{__version__}"),
         ("grpc.ssl_target_name_override", name),
     ]
+    for argument, seconds in (
+        ("keepalive_time_seconds", keepalive_time_seconds),
+        ("keepalive_timeout_seconds", keepalive_timeout_seconds),
+    ):
+        if seconds is not None and (type(seconds) is not int or seconds <= 0):
+            raise ConfigurationError(
+                f"{argument} is a whole number of seconds above 0, not {seconds!r}"
+            )
     if keepalive_time_seconds is not None:
         options.append(("grpc.keepalive_time_ms", keepalive_time_seconds * 1000))
     if keepalive_timeout_seconds is not None:

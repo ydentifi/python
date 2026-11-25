@@ -58,9 +58,21 @@ class StatusError(YdentifiError):
         self.auto_expires_at = auto_expires_at
 
     def __str__(self) -> str:
+        message = self.message
+        if self.code == grpc.StatusCode.UNAVAILABLE and self.reason == ErrorReason.UNSPECIFIED:
+            message += _UNAVAILABLE_HINT
         if self.trace_id:
-            return f"{self.message} (trace_id={self.trace_id})"
-        return self.message
+            return f"{message} (trace_id={self.trace_id})"
+        return message
+
+
+# The end of the text of an Unavailable error that carries no reason: a
+# failed TLS handshake reads as the last address's network fault, as
+# "Network is unreachable" for an IPv6 address the host cannot reach.
+_UNAVAILABLE_HINT = (
+    "; if the server is reachable, the TLS handshake may have failed: "
+    "check the CA bundle, the server name and the client certificate"
+)
 
 
 class NotFoundError(StatusError):

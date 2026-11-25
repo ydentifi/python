@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://pypi.org/project/ydentifi"><img src="https://img.shields.io/badge/pypi-ydentifi-1BA1C0?style=flat-square" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-1BA1C0?style=flat-square" alt="Python Version"></a>
-  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.5-1BA1C0?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/ydentifi/python/releases"><img src="https://img.shields.io/badge/release-v0.1.6-1BA1C0?style=flat-square" alt="Release"></a>
   <a href="https://ydentifi.io"><img src="https://img.shields.io/badge/ydentifi-identity%20server-1BA1C0?style=flat-square" alt="Ydentifi"></a>
 </p>
 
@@ -56,7 +56,7 @@ The client calls a deployment of the Ydentifi server, which is self-hosted. The 
 - **The relying party's certificate and private key**, issued by the deployment's certificate authority.
 - **The deployment's CA bundle**, with which the client verifies the server.
 
-A wrong CA bundle, server name or client certificate fails the TLS handshake, and the call raises `UnavailableError`. When the address resolves to more than one IP address, the error describes the last address tried, and can read as a network fault, such as `Network is unreachable` for an IPv6 address the host cannot reach. gRPC writes the handshake's failure, such as `CERTIFICATE_VERIFY_FAILED`, to standard error.
+A wrong CA bundle, server name or client certificate fails the TLS handshake, and the call raises `UnavailableError`. When the address resolves to more than one IP address, the error describes the last address tried, and can read as a network fault, such as `Network is unreachable` for an IPv6 address the host cannot reach. The error's text then says that the TLS handshake may have failed. For a CA bundle that did not issue the server's certificate, gRPC writes `CERTIFICATE_VERIFY_FAILED` to standard error; a wrong server name writes nothing there.
 
 The Ydentifi documentation describes how a deployment is run, in the [Quickstart](https://ydentifi.io/docs/quickstart); how relying-party certificates are issued, under [Certificates & PKI](https://ydentifi.io/docs/certificates); and how relying parties and users are managed, under [Manage RPs & users](https://ydentifi.io/docs/manage). The [documentation](https://ydentifi.io/docs) covers the rest, including the [limits and quotas](https://ydentifi.io/docs/limits).
 
@@ -111,7 +111,7 @@ The keyword arguments give the configuration, and the environment supplies what 
 
 | Variable | Argument | Purpose |
 |---|---|---|
-| `YDFI_SERVER_ADDR` | `server_addr=` | The identity server's address: `host`, `host:port` or `[IPv6]:port` |
+| `YDFI_SERVER_ADDR` | `server_addr=` | The identity server's address: `host`, `host:port` or `[IPv6]:port`. An empty string is refused, not filled from the variable |
 | `YDFI_TLS_CERT_PATH` | `cert_path=` or `cert_pem=` | The relying party's client certificate (PEM) |
 | `YDFI_TLS_KEY_PATH` | `key_path=` or `key_pem=` | Its private key (PEM) |
 | `YDFI_TLS_CA_PATH` | `ca_path=` or `ca_pem=` | The deployment's CA bundle that verifies the server (PEM) |
@@ -122,8 +122,8 @@ The keyword arguments give the configuration, and the environment supplies what 
 |---|---|---|
 | `YDFI_SERVER_NAME` | `server_name=` | The name the server's certificate is verified against. Required when the address's host is an IP address |
 | — | `user_agent=` | Replaces the default user agent, `ydentifi-python/<version>` |
-| — | `keepalive_time_seconds=` | The seconds between gRPC keepalive pings from the client |
-| — | `keepalive_timeout_seconds=` | The seconds a keepalive answer is awaited |
+| — | `keepalive_time_seconds=` | The seconds between gRPC keepalive pings from the client, a whole number above 0 |
+| — | `keepalive_timeout_seconds=` | The seconds a keepalive answer is awaited, a whole number above 0 |
 | — | `channel_options=` | Further gRPC channel options, `[(name, value), ...]`. They follow the client's own options, which they cannot replace: the user agent, the verification name and keepalive |
 
 The constructor raises `ConfigurationError` when:
@@ -306,6 +306,8 @@ Every method takes a keyword-only `timeout`, in seconds. A call still running wh
 - `None` means no limit. A negative `timeout` is a deadline already passed, and the call fails with `DeadlineExceededError` before it is sent. A `timeout` of 0 sets the deadline to the moment the call starts: gRPC may then still send the call and return its answer.
 
 ```python
+import contextlib
+
 with contextlib.closing(client.await_challenge(challenge_id, timeout=70)) as frames:
     result = next(f for f in frames if f.status.is_terminal)
 ```
@@ -325,12 +327,16 @@ Three methods read a server stream, and each is a generator (an async generator 
 The call starts at the first iteration, and each new generator is a new call. A generator releases its stream when it is exhausted, when it raises, or when it is closed. Leaving a loop with `break` does not close it; `contextlib.closing` closes it at the end of a `with` block, and `contextlib.aclosing` at the end of an `async with` block:
 
 ```python
+import contextlib
+
 with contextlib.closing(client.export_users()) as users:
     for user in users:
         print(user.opaque_id)
 ```
 
 ```python
+import contextlib
+
 async with contextlib.aclosing(client.export_users()) as users:
     async for user in users:
         print(user.opaque_id)
@@ -404,6 +410,8 @@ def bulk_create_users(
 **Returns** a generator of opaque IDs; an async generator on `AsyncClient`.
 
 ```python
+import contextlib
+
 with contextlib.closing(client.bulk_create_users(1000, "migration-2026-01")) as ids:
     created = set(ids)
 print(len(created), "of 1000")
@@ -626,6 +634,7 @@ def ban_device(
 
 - The ban is on the phone's permanent ID, not on one enrollment.
 - Banning a phone that is already banned succeeds and changes nothing.
+- A device that is no longer active keeps its status, and the call returns 0; its phone is banned all the same. No call lists the relying party's bans.
 - A ban applies to the relying party that made it only.
 - The user's TOTP secret is not replaced, as for `revoke_device`; the secret is replaced after the ban, not before.
 
@@ -775,6 +784,8 @@ def await_challenge(
 **Returns** a generator of [`ChallengeResult`](#challengeresult) frames; an async generator on `AsyncClient`. The first frame is the challenge's state when the stream opens: `PENDING`, `DELIVERED`, or already its outcome. The last frame is the first one whose status ends the challenge (`status.is_terminal`): `APPROVED`, `DENIED`, `REJECTED`, `EXPIRED`, `SUPERSEDED` or `DISMISSED`. The server then ends the stream, and the iteration ends.
 
 ```python
+import contextlib
+
 with contextlib.closing(client.await_challenge(challenge.challenge_id, timeout=70)) as frames:
     for frame in frames:
         print("status:", frame.status.name)
@@ -1239,7 +1250,7 @@ See [StatusError](#statuserror) under Error handling. `ydentifi.ErrorReason` is 
 ## Version
 
 ```python
-ydentifi.__version__  # "0.1.5"
+ydentifi.__version__  # "0.1.6"
 ```
 
 Versions are 0.x: a minor version may change the API.

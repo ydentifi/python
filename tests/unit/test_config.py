@@ -175,6 +175,30 @@ def test_the_channel_options_start_with_the_clients_own() -> None:
     ]
 
 
+def test_the_channel_options_may_be_any_sequence() -> None:
+    cfg = resolve(
+        server_addr="auth.example.com",
+        cert_pem=_CERT,
+        key_pem=_KEY,
+        ca_pem=_CA.pem,
+        channel_options=(("grpc.max_send_message_length", 1),),
+    )
+    assert cfg.options[-1] == ("grpc.max_send_message_length", 1)
+
+
+@pytest.mark.parametrize("seconds", ["20", 0.5, 0, -1, True])
+@pytest.mark.parametrize("argument", ["keepalive_time_seconds", "keepalive_timeout_seconds"])
+def test_a_keepalive_is_a_whole_number_of_seconds_above_0(argument: str, seconds: object) -> None:
+    with pytest.raises(ydentifi.ConfigurationError, match=argument):
+        resolve(
+            server_addr="auth.example.com",
+            cert_pem=_CERT,
+            key_pem=_KEY,
+            ca_pem=_CA.pem,
+            **{argument: seconds},  # type: ignore[arg-type]
+        )
+
+
 def test_the_user_agent_can_be_replaced() -> None:
     cfg = resolve(
         server_addr="auth.example.com",

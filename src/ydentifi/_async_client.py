@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Sequence
 from typing import Any
 
 import grpc
@@ -91,7 +91,7 @@ class AsyncClient:
         user_agent: str | None = None,
         keepalive_time_seconds: int | None = None,
         keepalive_timeout_seconds: int | None = None,
-        channel_options: list[tuple[str, str | int]] | None = None,
+        channel_options: Sequence[tuple[str, str | int]] | None = None,
     ) -> None:
         asyncio.get_running_loop()
         cfg = resolve(
